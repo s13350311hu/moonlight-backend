@@ -3,6 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 from pydantic import BaseModel
 from typing import Optional
+import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# 載入 .env 檔案裡的金鑰
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# 設定 Gemini AI
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    # 使用 gemini-1.5-flash 模型，反應速度最快，適合文字生成
+    model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    print("⚠️ 警告：找不到 GEMINI_API_KEY，AI 功能將無法運作")
 
 app = FastAPI()
 
@@ -96,3 +111,36 @@ def search_advanced(req: AdvancedSearchRequest):
             
     # 回傳找到的所有結果 (最多回傳前 10 筆，避免前端畫面塞爆)
     return {"status": "success", "data": results[:10]}
+# ==========================================
+# 🌟 第二階段全新：AI 沉浸式擴寫與暖身引擎 API
+# ==========================================
+class ExpandRequest(BaseModel):
+    base_text: str  # 使用者輸入的基礎枯燥句子，例如「他走進雨中」
+    style: Optional[str] = ""
+    emotion: Optional[str] = ""
+    scenario: Optional[str] = ""
+
+@app.post("/api/expand_inspiration")
+def expand_inspiration(req: ExpandRequest):
+    if not GEMINI_API_KEY:
+        return {"status": "error", "message": "伺服器未設定 AI 金鑰，請聯絡管理員"}
+
+    # 這就是你的 AI 員工守則 (Prompt)
+    prompt = f"""
+    你是一位精通中國文學與小說創作的寫作大師。
+    請根據以下提供的基礎句子與情境標籤，進行一段「沉浸式擴寫」，幫助作家找回寫作手感。
+
+    基礎句子：{req.base_text}
+    風格設定：{req.style if req.style else '無特定風格'}
+    情緒設定：{req.emotion if req.emotion else '無特定情緒'}
+    情境設定：{req.scenario if req.scenario else '無特定情境'}
+
+    請提供 3 種不同運鏡角度或修辭手法的擴寫版本（每個版本約 50-100 字即可），語氣要求優美典雅，排版清晰，並且務必使用繁體中文。
+    """
+
+    try:
+        # 呼叫 Gemini 產生內容
+        response = model.generate_content(prompt)
+        return {"status": "success", "data": response.text}
+    except Exception as e:
+        return {"status": "error", "message": f"AI 生成失敗：{str(e)}"}

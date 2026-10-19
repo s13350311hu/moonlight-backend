@@ -14,8 +14,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # 設定 Gemini AI
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    # 使用 gemini-1.5-flash 模型，反應速度最快，適合文字生成
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # 使用 gemini-pro 模型，這是目前最強大的模型
+    # 改成這樣：
+    model = genai.GenerativeModel('gemini-pro')
 else:
     print("⚠️ 警告：找不到 GEMINI_API_KEY，AI 功能將無法運作")
 

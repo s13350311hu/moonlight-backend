@@ -16,7 +16,7 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     # 使用 gemini-pro 模型，這是目前最強大的模型
     # 改成這樣：
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-3.8-flash')
 else:
     print("⚠️ 警告：找不到 GEMINI_API_KEY，AI 功能將無法運作")
 

@@ -33,14 +33,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# SQLite 資料庫路徑（對齊上一動轉檔產生的 word_bank.db）
+# 取得目前 main.py 所在的絕對資料夾路徑
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 確保路徑精確鎖定同目錄下的 word_bank.db
 DB_PATH = os.path.join(BASE_DIR, "word_bank.db")
 
+print(f"[DEBUG] SQLite DB Path: {DB_PATH}")
+print(f"[DEBUG] File exists: {os.path.exists(DB_PATH)}")
 if os.path.exists(DB_PATH):
-    print("✅ 成功連接 SQLite 詞彙資料庫 (word_bank.db)")
-else:
-    print("❌ 找不到 word_bank.db，請先執行 python convert_to_sqlite.py")
+    print(f"[DEBUG] DB File Size: {os.path.getsize(DB_PATH)} bytes")
 
 
 # ==========================================

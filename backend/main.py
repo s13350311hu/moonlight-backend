@@ -25,8 +25,8 @@ key_cycle = itertools.cycle(API_KEYS) if API_KEYS else None
 # 模型優先順序：首選你指定的 gemini-3.8-flash，遇單一 Key 限流時自動備援
 MODEL_CANDIDATES = [
     "gemini-3.8-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
 ]
 
 if API_KEYS:

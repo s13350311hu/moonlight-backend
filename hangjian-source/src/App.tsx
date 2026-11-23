@@ -21,9 +21,12 @@ import { Notes } from './components/Notes'
 import { Layout } from './components/Layout'
 import { Backup } from './components/Backup'
 import { Settings } from './components/Settings'
+import { PoetryPanel, type AiSubTab } from './components/PoetryPanel'
 
-type Tab = 'cards' | 'equation' | 'codex' | 'threads' | 'notes' | 'layout' | 'backup' | 'settings'
-const TABS: { id: Tab; label: () => string }[] = [
+type StoryTab = 'cards' | 'equation' | 'codex' | 'threads' | 'notes' | 'layout' | 'backup' | 'settings'
+type Tab = StoryTab | AiSubTab
+
+const STORY_TABS: { id: StoryTab; label: () => string }[] = [
   { id: 'cards', label: () => L('抽卡', 'カード') },
   { id: 'equation', label: () => L('方程式', '方程式') },
   { id: 'codex', label: () => L('設定集', '設定資料') },
@@ -33,6 +36,15 @@ const TABS: { id: Tab; label: () => string }[] = [
   { id: 'backup', label: () => L('備份', 'バックアップ') },
   { id: 'settings', label: () => L('同步', '同期') },
 ]
+
+const AI_TABS: { id: AiSubTab; label: string }[] = [
+  { id: 'lexicon', label: '詞彙庫' },
+  { id: 'expand', label: 'AI 擴寫' },
+  { id: 'coach', label: '盲點診斷' },
+  { id: 'consistency', label: '設定追蹤' },
+  { id: 'outline', label: '大綱精靈' },
+]
+
 const STATUS_LABEL: Record<ChapterStatus, () => string> = {
   draft: () => L('初稿', '初稿'),
   revising: () => L('修改中', '改稿中'),
@@ -41,14 +53,6 @@ const STATUS_LABEL: Record<ChapterStatus, () => string> = {
 
 setMutationHook(() => scheduleSync())
 
-/**
- * useLiveQuery 在重新查詢的空檔會回 undefined。照著它渲染的話，
- * 每次存檔都會讓整個畫面掉回「載入中」，編輯區被卸載重建——
- * 注音打到一半就是這樣斷掉的。所以記住上一次的好值，undefined 就沿用。
- *
- * key 是拿來分辨「這筆舊值還算不算數」的。換作品的時候查詢會重跑，
- * 這時候沿用上一部的資料會讓畫面顯示錯的東西，所以 key 一變就不沿用。
- */
 function useSticky<T>(value: T | undefined, key?: string): T | undefined {
   const last = useRef<{ k?: string; v?: T }>({})
   if (value !== undefined) last.current = { k: key, v: value }
@@ -60,9 +64,11 @@ export default function App() {
   const [cur, setCur] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('cards')
   const [focus, setFocus] = useState(false)
+  const [leftOpen, setLeftOpen] = useState(true)
+  const [rightOpen, setRightOpen] = useState(true)
   const [drawer, setDrawer] = useState<'rail' | 'panel' | null>(null)
   const [renaming, setRenaming] = useState(false)
-  useLang()   // 語言一換，整棵樹跟著重畫
+  useLang()
   const [saved, setSaved] = useState(true)
   const [sync, setSync] = useState<SyncStatus | null>(null)
 
@@ -74,7 +80,6 @@ export default function App() {
   const [mentionedText, setMentionedText] = useState('')
 
   useEffect(() => { currentProjectId().then(setPid); startAutoSync() }, [])
-
 
   async function switchProject(id: string) {
     await setSetting(CURRENT_PROJECT_KEY, id)
@@ -100,7 +105,6 @@ export default function App() {
   const notes = useSticky(useLiveQuery(async () =>
     pid ? alive(await db.notes.where('projectId').equals(pid).toArray()).sort((a, b) => b.createdAt - a.createdAt) : [], [pid]), pid ?? '') ?? ([] as Note[])
 
-  // 第一次同步有結果之後，若本機和雲端都真的沒東西，才建空白的。
   const settled = sync?.settled ?? false
   useEffect(() => {
     if (!settled) return
@@ -110,15 +114,12 @@ export default function App() {
 
   useEffect(() => {
     if (!chapters.length) return
-    // cur 可能還指著上一部作品的章節，那樣 current 會永遠找不到、畫面卡在「載入中」
     if (cur == null || !chapters.some((c) => c.id === cur)) setCur(chapters[0].id)
   }, [chapters, cur])
   const current = chapters.find((c) => c.id === cur)
 
-  // Tiptap 自己管內容區的 DOM，React 不會重繪到它，輸入法組字不受影響。
   const onEditorReady = useCallback((ed: TipTapEditor) => { edRef.current = ed }, [])
 
-  /** 編輯器每次變動都會叫這裡。統計直接寫 DOM，不走 state，打字時整棵樹都不重繪。 */
   const onEditorUpdate = useCallback((html: string, text: string) => {
     if (wcRef.current) wcRef.current.textContent = `${wordCount(text)} 字`
     if (drRef.current) drRef.current.textContent = `會話 ${Math.round(dialogueRatio(text) * 100)}%`
@@ -174,7 +175,6 @@ export default function App() {
     await Promise.all(rest.map((c, k) => (c.order === k ? null : updRec(db.chapters, c.id, { order: k }))))
     if (cur === id) setCur(rest[0]?.id ?? null)
   }
-  /** 把一段純文字接到這一章最後面（卡牌練習用）。 */
   function appendToChapter(t: string) {
     const ed = edRef.current
     if (!ed) return
@@ -183,13 +183,17 @@ export default function App() {
     ).run()
     setDrawer(null)
   }
-
-  /** 把一段素材插在游標處。 */
   function insertAtCursor(t: string) {
     const ed = edRef.current
     if (!ed) return
     ed.chain().focus().insertContent(t).run()
     setDrawer(null)
+  }
+  function getSelectedText() {
+    const ed = edRef.current
+    if (!ed) return ''
+    const { from, to } = ed.state.selection
+    return ed.state.doc.textBetween(from, to, ' ')
   }
 
   if (!pid || !project || !current) {
@@ -211,24 +215,38 @@ export default function App() {
     '--ed-indent': `${Lp.indent}em`,
   } as React.CSSProperties
 
+  const isAiTab = AI_TABS.some((t) => t.id === tab)
+
   return (
     <>
       <div className={`scrim${drawer ? ' on' : ''}`} onClick={() => setDrawer(null)} />
-      <div className={`app${focus ? ' focus' : ''}`} style={edStyle}>
-        <header className="topbar">
-          <button className="flat drawer-btn" aria-label={L('章節', '章')} onClick={() => setDrawer(drawer === 'rail' ? null : 'rail')}>≡</button>
-          <span className="brand">行間</span>
-          <TextInput className="chap-title" aria-label={L('章節標題', '章の題名')} value={current.title}
-            onCommit={(v) => updRec(db.chapters, current.id, { title: v })} />
-          <select aria-label={L('狀態', '状態')} value={current.status}
-            onChange={(e) => updRec(db.chapters, current.id, { status: e.target.value as ChapterStatus })}>
-            {(Object.keys(STATUS_LABEL) as ChapterStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]()}</option>)}
-          </select>
-          <button className="flat" onClick={() => setFocus(!focus)}>{focus ? L('離開專注', '集中を抜ける') : L('專注', '集中')}</button>
-          <button className="flat drawer-btn" aria-label={L('面板', 'パネル')} onClick={() => setDrawer(drawer === 'panel' ? null : 'panel')}>▦</button>
-        </header>
-
+      <div
+        className={`app${focus ? ' focus' : ''}${!leftOpen ? ' left-collapsed' : ''}${!rightOpen ? ' right-collapsed' : ''}`}
+        style={edStyle}
+      >
+        {/* 左側欄 */}
         <aside className={`rail${drawer === 'rail' ? ' open' : ''}`}>
+          <div className="rail-brand">
+            <div className="brand-mark" aria-hidden="true"><span /></div>
+            <span className="brand-title">月下語詩</span>
+            <button
+              className="flat collapse-btn"
+              title="收合左側欄"
+              onClick={() => {
+                setLeftOpen(false)
+                setDrawer(null)
+              }}
+            >
+              ‹
+            </button>
+          </div>
+
+          <div className="rail-action">
+            <button className="btn-new-chap" onClick={addChapter}>
+              ＋ {L('新增章節', '章を足す')}
+            </button>
+          </div>
+
           <div className="rail-head">
             {renaming ? (
               <TextInput autoFocus aria-label={L('作品名稱', '作品名')} value={project.title}
@@ -245,12 +263,17 @@ export default function App() {
             <button className="flat" title={renaming ? L('改好了', '完了') : L('改作品名稱', '作品名を変える')}
               onClick={() => setRenaming(!renaming)}>{renaming ? '✓' : '✎'}</button>
           </div>
+
           <div className="scroll">
             {chapters.map((c, i) => (
               <div key={c.id} className="chap" aria-current={c.id === cur} role="button" tabIndex={0}
                 onClick={() => { setCur(c.id); setDrawer(null) }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCur(c.id); setDrawer(null) } }}>
-                <div className="chap-name"><span className={`dot ${c.status}`} /><span>{i + 1}. {c.title}</span></div>
+                <div className="chap-name">
+                  <span className={`dot ${c.status}`} />
+                  <span className="chap-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span>{c.title}</span>
+                </div>
                 <div className="chap-meta">
                   <span>{wordCount(c.text)}{L(' 字', ' 字')}</span>
                   {c.func && <span>・{c.func}</span>}
@@ -266,45 +289,95 @@ export default function App() {
               </div>
             ))}
           </div>
+
           <div className="panel-foot">
+            <span className={`sync-dot ${sync?.state ?? 'unconfigured'}`} />
             <span style={{ flex: 1 }}>{L(`全稿 ${total} 字`, `全体 ${total} 字`)}</span>
-            <button className="flat" onClick={addChapter}>{L('＋ 新增章節', '＋ 章を足す')}</button>
+            <span>{saved ? L('已存', '保存済み') : L('存檔中…', '保存中…')}</span>
           </div>
         </aside>
 
+        {/* 中央工作區 */}
         <main className="main">
+          <header className="floating-topbar">
+            <button className="flat drawer-btn" aria-label={L('章節', '章')} onClick={() => setDrawer(drawer === 'rail' ? null : 'rail')}>≡</button>
+            {!leftOpen && !focus && (
+              <button className="flat pill-btn" title="展開左側欄" onClick={() => { setLeftOpen(true); setDrawer(null) }}>
+                ☰ 目錄
+              </button>
+            )}
+            <TextInput className="chap-title" aria-label={L('章節標題', '章の題名')} value={current.title}
+              onCommit={(v) => updRec(db.chapters, current.id, { title: v })} />
+            <span className="word-pill" ref={wcRef}>{wordCount(current.text)}{L(' 字', ' 字')}</span>
+            <select className="pill-select" aria-label={L('狀態', '状態')} value={current.status}
+              onChange={(e) => updRec(db.chapters, current.id, { status: e.target.value as ChapterStatus })}>
+              {(Object.keys(STATUS_LABEL) as ChapterStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]()}</option>)}
+            </select>
+            <button className={`pill-btn${focus ? ' on' : ''}`} onClick={() => { setFocus(!focus); setDrawer(null) }}>
+              {focus ? L('離開專注', '集中を抜ける') : L('專注', '集中')}
+            </button>
+            {!rightOpen && !focus && (
+              <button className="pill-btn ai-reopen-btn" onClick={() => { setRightOpen(true); setDrawer(null) }}>
+                ✨ 創作工具
+              </button>
+            )}
+            <button className="flat drawer-btn" aria-label={L('面板', 'パネル')} onClick={() => setDrawer(drawer === 'panel' ? null : 'panel')}>▦</button>
+          </header>
+
           <div className="summary-row">
             <span className="lbl">{L('本章摘要', 'この章のあらすじ')}</span>
             <TextInput placeholder={L('一句話講這章發生什麼事', 'この章で何が起きるかを一行で')} value={current.summary}
               onCommit={(v) => updRec(db.chapters, current.id, { summary: v })} />
-            {f && <span className="tag seal" title={L('這一章在方程式裡負責的機能', 'この章が方程式で担う機能')}>{f.code}　{f.ja}</span>}
+            {f && <span className="tag seal">{f.code} {f.ja}</span>}
           </div>
+
           <Editor chapterId={current.id} html={chapterHtml(current)}
             onUpdate={onEditorUpdate} onReady={onEditorReady} />
+
           <div className="statusbar">
-            <span ref={wcRef}>{wordCount(current.text)}{L(' 字', ' 字')}</span>
-            <span ref={drRef} title={L('會話佔全文的比例。《小説作法ABC》：小說由會話・描寫・說明構成',
-              '会話が全文に占める割合。『小説作法ABC』：小説は会話・描写・説明でできている')}>
+            <span ref={drRef}>
               {L('會話', '会話')} {Math.round(dialogueRatio(current.text) * 100)}%
             </span>
             <span className="grow" />
-            <span className={`sync-dot ${sync?.state ?? 'unconfigured'}`} />
-            <span>{saved ? L('已存', '保存済み') : L('存檔中…', '保存中…')}</span>
             <span>{L('⌘. 專注模式', '⌘. 集中モード')}</span>
           </div>
         </main>
 
+        {/* 右側創作與 AI 工具面板 */}
         <aside className={`panel${drawer === 'panel' ? ' open' : ''}`}>
-          <nav className="tabs" role="tablist">
-            {TABS.map((t) => (
-              <button key={t.id} className={`tab${tab === t.id ? ' active' : ''}`} role="tab"
-                aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
-                {t.label()}
-                {t.id === 'threads' && threads.some((x) => x.status === 'open') &&
-                  <span style={{ color: 'var(--seal)' }}> ·{threads.filter((x) => x.status === 'open').length}</span>}
-              </button>
-            ))}
+          <button
+            className="right-collapse-circle"
+            title="收合創作工具"
+            aria-label="收合創作工具"
+            onClick={() => {
+              setRightOpen(false)
+              setDrawer(null)
+            }}
+          >
+            ›
+          </button>
+
+          <nav className="tabs-grid" role="tablist">
+            <div className="tabs-row story-row">
+              {STORY_TABS.map((t) => (
+                <button key={t.id} className={`pill-tab${tab === t.id ? ' active' : ''}`} role="tab"
+                  aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
+                  {t.label()}
+                  {t.id === 'threads' && threads.some((x) => x.status === 'open') &&
+                    <span className="badge-dot">·{threads.filter((x) => x.status === 'open').length}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="tabs-row ai-row">
+              {AI_TABS.map((t) => (
+                <button key={t.id} className={`pill-tab ai-pill${tab === t.id ? ' active' : ''}`} role="tab"
+                  aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </nav>
+
           {tab === 'cards' && <Cards projectId={pid} onAppend={appendToChapter} />}
           {tab === 'equation' && <Equation project={project as Project} chapters={chapters} entries={entries} />}
           {tab === 'codex' && <Codex projectId={pid} entries={entries} mentioned={mentioned} />}
@@ -320,6 +393,15 @@ export default function App() {
           )}
           {tab === 'backup' && <Backup project={project as Project} chapters={chapters} />}
           {tab === 'settings' && <Settings />}
+
+          {isAiTab && (
+            <PoetryPanel
+              activeSubTab={tab as AiSubTab}
+              onInsert={insertAtCursor}
+              getSelectedText={getSelectedText}
+              getCurrentChapterText={() => current?.text || ''}
+            />
+          )}
         </aside>
       </div>
     </>

@@ -29,6 +29,7 @@ MODEL_CANDIDATES = [
     "gemini-3.5-flash",
 ]
 
+
 if API_KEYS:
     print(f"✅ 已載入 {len(API_KEYS)} 組 Gemini API Key 進入輪替池")
 else:

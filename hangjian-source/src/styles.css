@@ -529,8 +529,17 @@ textarea { resize: vertical; line-height: 1.7; }
   .right-collapse-circle { display: none; }
 }
 /* =========================================================
-   修復深色主題（月夜 / 滄海 / 自訂深色）按鈕與文字對比度
+   1. 確保深色主題下右側面板背景、分頁按鈕與表單文字高對比清晰
    ========================================================= */
+.drawer,
+.side,
+.right-panel,
+.panel,
+aside {
+  background-color: var(--panel, #efede7) !important;
+  color: var(--ink, #242320) !important;
+}
+
 .tabs button,
 .sub-tabs button,
 [role="tablist"] button {
@@ -566,7 +575,7 @@ select {
 }
 
 /* =========================================================
-   網頁介面主題卡片網格 & 微調面板樣式
+   2. 網頁介面主題卡片網格 & 「存成我的」「微調」高對比樣式
    ========================================================= */
 .theme-grid {
   display: grid;
@@ -631,7 +640,7 @@ select {
 
 .theme-card-sub {
   font-size: 11px;
-  opacity: 0.75;
+  opacity: 0.78;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -642,30 +651,38 @@ select {
   width: 48%;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1.5px dashed var(--line, rgba(128, 128, 128, 0.45));
-  background: transparent;
-  color: var(--ink, inherit);
+  border: 1.5px dashed var(--ink, currentColor) !important;
+  background-color: var(--panel-2, rgba(128, 128, 128, 0.15)) !important;
+  color: var(--ink, inherit) !important;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   margin-bottom: 12px;
+  opacity: 0.92;
 }
 
 .save-custom-btn:hover {
-  background: var(--panel-2, rgba(128, 128, 128, 0.1));
+  opacity: 1;
+  background-color: var(--panel-3, rgba(128, 128, 128, 0.25)) !important;
 }
 
 .tweak-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: none;
-  border: none;
-  padding: 6px 0;
-  color: var(--ink, inherit);
+  background: transparent !important;
+  border: none !important;
+  padding: 6px 4px;
+  color: var(--ink, inherit) !important;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   width: 100%;
   text-align: left;
+}
+
+.tweak-toggle:hover {
+  opacity: 0.85;
 }
 
 .custom-color-grid {
@@ -681,8 +698,9 @@ select {
   justify-content: space-between;
   padding: 6px 10px;
   border-radius: 6px;
-  background: var(--panel-2, rgba(128, 128, 128, 0.12));
-  border: 1px solid var(--line, rgba(128, 128, 128, 0.25));
+  background: var(--panel-2, rgba(128, 128, 128, 0.15));
+  border: 1px solid var(--line, rgba(128, 128, 128, 0.3));
+  color: var(--ink, inherit);
   font-size: 12px;
 }
 

@@ -117,12 +117,17 @@ function applyThemeToDocument(c: ThemeColors) {
   root.style.setProperty('--bg', c.bg)
   root.style.setProperty('--paper', c.bg)
   root.style.setProperty('--panel', c.panel)
+  root.style.setProperty('--surface', c.panel)
+  root.style.setProperty('--sidebar', c.panel)
   root.style.setProperty('--panel-2', c.panel2)
   root.style.setProperty('--panel-3', c.panel2)
   root.style.setProperty('--ink', c.ink)
   root.style.setProperty('--fg', c.ink)
+  root.style.setProperty('--text', c.ink)
   root.style.setProperty('--seal', c.seal)
+  root.style.setProperty('--accent', c.seal)
   root.style.setProperty('--line', c.line)
+  root.style.setProperty('--border', c.line)
 }
 
 function Slider({ label, value, min, max, step, unit, onChange }: {

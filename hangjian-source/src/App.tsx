@@ -51,6 +51,56 @@ const STATUS_LABEL: Record<ChapterStatus, () => string> = {
   done: () => L('定稿', '決定稿'),
 }
 
+const DEFAULT_DARK_COLORS = {
+  bg: '#16181d',
+  panel: '#1f2229',
+  panel2: '#2c313c',
+  ink: '#edeff5',
+  seal: '#d99b66',
+  line: '#363c48',
+}
+
+const DEFAULT_LIGHT_COLORS = {
+  bg: '#faf9f5',
+  panel: '#f1efe9',
+  panel2: '#e5e2d9',
+  ink: '#242320',
+  seal: '#b34b39',
+  line: '#d6d2c6',
+}
+
+function initInitialTheme() {
+  if (typeof window === 'undefined') return
+  const root = document.documentElement
+  const prefersDark = Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+  let colors = prefersDark ? DEFAULT_DARK_COLORS : DEFAULT_LIGHT_COLORS
+
+  try {
+    const raw = localStorage.getItem('moonlight_custom_theme_colors')
+    if (raw) {
+      colors = { ...colors, ...JSON.parse(raw) }
+    }
+  } catch { /* ignore */ }
+
+  root.style.setProperty('--bg', colors.bg)
+  root.style.setProperty('--paper', colors.bg)
+  root.style.setProperty('--panel', colors.panel)
+  root.style.setProperty('--surface', colors.panel)
+  root.style.setProperty('--sidebar', colors.panel)
+  root.style.setProperty('--panel-2', colors.panel2)
+  root.style.setProperty('--panel-3', colors.panel2)
+  root.style.setProperty('--ink', colors.ink)
+  root.style.setProperty('--fg', colors.ink)
+  root.style.setProperty('--text', colors.ink)
+  root.style.setProperty('--seal', colors.seal)
+  root.style.setProperty('--accent', colors.seal)
+  root.style.setProperty('--line', colors.line)
+  root.style.setProperty('--border', colors.line)
+}
+
+// 頁面載入瞬間立即套用主題，避免首次進入或深色系統出現側欄白邊
+initInitialTheme()
+
 setMutationHook(() => scheduleSync())
 
 function useSticky<T>(value: T | undefined, key?: string): T | undefined {
@@ -79,7 +129,24 @@ export default function App() {
   const curRef = useRef<string | null>(null)
   const [mentionedText, setMentionedText] = useState('')
 
-  useEffect(() => { currentProjectId().then(setPid); startAutoSync() }, [])
+  useEffect(() => {
+    initInitialTheme()
+    currentProjectId().then(setPid)
+    startAutoSync()
+  }, [])
+
+  // 若使用者未手動指定過主題，系統深/淺色模式切換時自動同步更新
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onSystemThemeChange = () => {
+      if (!localStorage.getItem('moonlight_active_theme_id')) {
+        initInitialTheme()
+      }
+    }
+    mq.addEventListener('change', onSystemThemeChange)
+    return () => mq.removeEventListener('change', onSystemThemeChange)
+  }, [])
 
   async function switchProject(id: string) {
     await setSetting(CURRENT_PROJECT_KEY, id)

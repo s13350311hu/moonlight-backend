@@ -112,6 +112,10 @@ const STORAGE_THEME_ID = 'moonlight_active_theme_id'
 const STORAGE_CUSTOM_COLORS = 'moonlight_custom_theme_colors'
 const STORAGE_SAVED_CUSTOMS = 'moonlight_saved_custom_themes'
 
+function getSystemPrefersDark(): boolean {
+  return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+}
+
 function applyThemeToDocument(c: ThemeColors) {
   const root = document.documentElement
   root.style.setProperty('--bg', c.bg)
@@ -159,7 +163,12 @@ export function Layout({ project, projects, onDelete }: {
   const set = (patch: Partial<LayoutPrefs>) =>
     updRec(db.project, project.id, { layout: { ...Lp, ...patch } })
 
-  const [activeThemeId, setActiveThemeId] = useState<string>(() => localStorage.getItem(STORAGE_THEME_ID) || 'day')
+  const [activeThemeId, setActiveThemeId] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_THEME_ID)
+    if (saved) return saved
+    return getSystemPrefersDark() ? 'night' : 'day'
+  })
+
   const [savedCustoms, setSavedCustoms] = useState<{ id: string; name: string; colors: ThemeColors }[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_SAVED_CUSTOMS)
@@ -174,7 +183,7 @@ export function Layout({ project, projects, onDelete }: {
       const raw = localStorage.getItem(STORAGE_CUSTOM_COLORS)
       if (raw) return JSON.parse(raw)
     } catch { /* ignore */ }
-    return BUILTIN_THEMES[1].colors
+    return getSystemPrefersDark() ? BUILTIN_THEMES[0].colors : BUILTIN_THEMES[1].colors
   })
 
   const [tweakOpen, setTweakOpen] = useState(false)
@@ -182,6 +191,22 @@ export function Layout({ project, projects, onDelete }: {
   useEffect(() => {
     applyThemeToDocument(currentColors)
   }, [currentColors])
+
+  // 若使用者尚未手動指定過主題，當系統深/淺色模式切換時自動跟隨
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem(STORAGE_THEME_ID)) {
+        const target = e.matches ? BUILTIN_THEMES[0] : BUILTIN_THEMES[1]
+        setActiveThemeId(target.id)
+        setCurrentColors(target.colors)
+        applyThemeToDocument(target.colors)
+      }
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   const allThemes: ThemePreset[] = [
     ...BUILTIN_THEMES,
@@ -194,7 +219,8 @@ export function Layout({ project, projects, onDelete }: {
     })),
   ]
 
-  const currentThemeObj = allThemes.find((t) => t.id === activeThemeId) || BUILTIN_THEMES[1]
+  const defaultPreset = getSystemPrefersDark() ? BUILTIN_THEMES[0] : BUILTIN_THEMES[1]
+  const currentThemeObj = allThemes.find((t) => t.id === activeThemeId) || defaultPreset
 
   const selectTheme = (t: ThemePreset) => {
     setActiveThemeId(t.id)
@@ -231,7 +257,7 @@ export function Layout({ project, projects, onDelete }: {
     setSavedCustoms(nextList)
     localStorage.setItem(STORAGE_SAVED_CUSTOMS, JSON.stringify(nextList))
     if (activeThemeId === id) {
-      selectTheme(BUILTIN_THEMES[1])
+      selectTheme(defaultPreset)
     }
   }
 

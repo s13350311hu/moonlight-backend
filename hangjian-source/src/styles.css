@@ -529,30 +529,78 @@ textarea { resize: vertical; line-height: 1.7; }
   .right-collapse-circle { display: none; }
 }
 /* =========================================================
-   1. 確保深色主題下右側面板背景、分頁按鈕與表單文字高對比清晰
+   1. 確保所有側欄、面板、頂列在任何系統深/淺色模式下背景與文字完全同步
    ========================================================= */
+:root {
+  --bg: #faf9f5;
+  --paper: #faf9f5;
+  --panel: #f1efe9;
+  --panel-2: #e5e2d9;
+  --panel-3: #dad6cb;
+  --ink: #242320;
+  --fg: #242320;
+  --seal: #b34b39;
+  --line: #d6d2c6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --paper: #16181d;
+    --panel: #1f2229;
+    --panel-2: #2c313c;
+    --panel-3: #363c48;
+    --ink: #edeff5;
+    --fg: #edeff5;
+    --seal: #d99b66;
+    --line: #363c48;
+  }
+}
+
+/* 強制讓左側目錄欄、中間編輯區、右側工具抽屜都吃下統一的變數 */
+body,
+.app,
+.shell,
+.main,
+.editor-wrap {
+  background-color: var(--bg) !important;
+  color: var(--ink) !important;
+}
+
+aside,
+nav,
+.left,
+.sidebar,
 .drawer,
 .side,
 .right-panel,
-.panel,
-aside {
-  background-color: var(--panel, #efede7) !important;
-  color: var(--ink, #242320) !important;
+.panel {
+  background-color: var(--panel) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+
+/* 左上角標題與作品名稱強制高對比 */
+.brand,
+.logo,
+.title,
+h1, h2, h3 {
+  color: var(--ink) !important;
 }
 
 .tabs button,
 .sub-tabs button,
 [role="tablist"] button {
-  background-color: var(--panel-2, rgba(128, 128, 128, 0.18)) !important;
-  color: var(--ink, var(--fg, #222222)) !important;
-  border: 1px solid var(--line, rgba(128, 128, 128, 0.3)) !important;
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
   transition: all 0.15s ease;
 }
 
 .tabs button:hover,
 .sub-tabs button:hover,
 [role="tablist"] button:hover {
-  background-color: var(--panel-3, rgba(128, 128, 128, 0.3)) !important;
+  background-color: var(--panel-3) !important;
 }
 
 .tabs button.active,
@@ -560,18 +608,18 @@ aside {
 .sub-tabs button.active,
 .sub-tabs button[aria-selected="true"],
 [role="tablist"] button[aria-selected="true"] {
-  background-color: var(--seal, #b34b39) !important;
+  background-color: var(--seal) !important;
   color: #ffffff !important;
-  border-color: var(--seal, #b34b39) !important;
+  border-color: var(--seal) !important;
   font-weight: 600;
 }
 
 input,
 textarea,
 select {
-  background-color: var(--panel, var(--bg, transparent)) !important;
-  color: var(--ink, var(--fg, inherit)) !important;
-  border: 1px solid var(--line, rgba(128, 128, 128, 0.35)) !important;
+  background-color: var(--panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
 }
 
 /* =========================================================
@@ -601,8 +649,8 @@ select {
 }
 
 .theme-card.selected {
-  border-color: var(--seal, #b34b39) !important;
-  box-shadow: 0 0 0 1px var(--seal, #b34b39);
+  border-color: var(--seal) !important;
+  box-shadow: 0 0 0 1px var(--seal);
 }
 
 .theme-icon-preview {
@@ -651,9 +699,9 @@ select {
   width: 48%;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1.5px dashed var(--ink, currentColor) !important;
-  background-color: var(--panel-2, rgba(128, 128, 128, 0.15)) !important;
-  color: var(--ink, inherit) !important;
+  border: 1.5px dashed var(--ink) !important;
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -663,7 +711,7 @@ select {
 
 .save-custom-btn:hover {
   opacity: 1;
-  background-color: var(--panel-3, rgba(128, 128, 128, 0.25)) !important;
+  background-color: var(--panel-3) !important;
 }
 
 .tweak-toggle {
@@ -673,7 +721,7 @@ select {
   background: transparent !important;
   border: none !important;
   padding: 6px 4px;
-  color: var(--ink, inherit) !important;
+  color: var(--ink) !important;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -698,9 +746,9 @@ select {
   justify-content: space-between;
   padding: 6px 10px;
   border-radius: 6px;
-  background: var(--panel-2, rgba(128, 128, 128, 0.15));
-  border: 1px solid var(--line, rgba(128, 128, 128, 0.3));
-  color: var(--ink, inherit);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
   font-size: 12px;
 }
 

@@ -838,3 +838,27 @@ button.flat:hover,
 .right-collapse-circle:hover {
   background-color: var(--panel-2) !important;
 }
+/* =========================================================
+   4. 修復右下角字卡（推力／阻力／代價）白底白字問題
+   ========================================================= */
+.panel .scroll > div,
+.panel .scroll section,
+.panel .scroll article,
+.draw,
+.slot,
+.fcard,
+.function-card,
+.card-item {
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+
+/* 確保字卡內的標籤膠囊（如「推力」、「阻力」、「代價」）清晰可見 */
+.panel .tag,
+.panel .badge,
+.panel .pill {
+  background-color: var(--panel-3) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+}

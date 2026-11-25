@@ -760,3 +760,81 @@ select {
   background: transparent !important;
   cursor: pointer;
 }
+/* =========================================================
+   3. 修復深色主題下「白底卡片、選中章節膠囊、標題列、一般按鈕」白底白字問題
+   ========================================================= */
+
+/* 1. 左側選中章節膠囊 (.chap[aria-current="true"]) */
+.chap[aria-current="true"],
+.chap.active {
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--seal) !important;
+}
+
+.chap[aria-current="true"] *,
+.chap.active * {
+  color: var(--ink) !important;
+}
+
+/* 2. 中間上方浮動標題列 (.floating-topbar) */
+.floating-topbar,
+.floating-topbar .chap-title {
+  background-color: var(--panel) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+
+/* 3. 右側卡牌面板與所有資訊卡片 (.card) */
+.card,
+.box,
+.item-card,
+.tarot-card {
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+}
+
+/* 卡片內的次要說明文字（如「新機會、資源、豐富…」） */
+.card .sub,
+.card p,
+.card span,
+.sub,
+.hint {
+  color: var(--ink) !important;
+  opacity: 0.82;
+}
+
+/* 4. 所有一般按鈕（如「用卡牌寫故事」、「整副重發」、工具列膠囊按鈕） */
+button:not(.theme-card):not(.btn-new-chap):not(.active):not([aria-selected="true"]):not(.on):not(.tweak-toggle) {
+  background-color: var(--panel-2) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+}
+
+button:not(.theme-card):not(.btn-new-chap):not(.active):not([aria-selected="true"]):not(.on):not(.tweak-toggle):hover {
+  background-color: var(--panel-3) !important;
+}
+
+/* 5. 強調按鈕（如「接下一場」、選中狀態 .on） */
+button.on,
+button.primary {
+  background-color: var(--seal) !important;
+  color: #ffffff !important;
+  border-color: var(--seal) !important;
+}
+
+/* 6. 透明圖示小按鈕（如收合按鈕 ‹ ›、上下移 ↑ ↓、鉛筆 ✎）保持乾淨無框 */
+button.flat,
+.collapse-btn,
+.right-collapse-circle {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--ink) !important;
+}
+
+button.flat:hover,
+.collapse-btn:hover,
+.right-collapse-circle:hover {
+  background-color: var(--panel-2) !important;
+}
